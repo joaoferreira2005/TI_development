@@ -1,7 +1,7 @@
 import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
-
+######################################################################################################################################################################################
 #2 # colocar ciclo for
 
 def visualizacaoGrafica(dataNP, n_linhas,n_colunas, x_posicao, y_posicao, categorias):
@@ -12,7 +12,7 @@ def visualizacaoGrafica(dataNP, n_linhas,n_colunas, x_posicao, y_posicao, catego
     plt.ylabel(categorias[y_posicao])
     plt.title(f"{categorias[x_posicao]} VS {categorias[y_posicao]}")
 
-
+######################################################################################################################################################################################
 # 3)
 
 def define_alfabeto(data_uint16):
@@ -26,7 +26,9 @@ def define_alfabeto(data_uint16):
 
     return dic
 
+######################################################################################################################################################################################
 #4
+
 def contar_ocorrencias_por_simbolo(data, coluna):
     ocorrencias = {}
     for coluna in data.columns:
@@ -39,6 +41,7 @@ def contar_ocorrencias_por_simbolo(data, coluna):
         ocorrencias[coluna] = ocorrencias_simbolos
     return ocorrencias
 
+######################################################################################################################################################################################
 #5
 
 # Função para criar gráfico de barras
@@ -50,7 +53,8 @@ def grafico_barras(categoria, xlabel, ocorrencias, alfabeto):
         simbolos_sorted = sorted(simbolos)
         contagens_sorted = [] 
         for simbolo in simbolos_sorted:
-            contagens_sorted.append(contagem_de_ocorrencias[simbolo])
+            if simbolo in contagem_de_ocorrencias:
+                contagens_sorted.append(contagem_de_ocorrencias[simbolo])
 
         plt.figure(figsize=(8, 8))
         plt.bar(list(map(str, simbolos_sorted)), contagens_sorted, color = "red")
@@ -58,31 +62,35 @@ def grafico_barras(categoria, xlabel, ocorrencias, alfabeto):
         plt.ylabel("Count")
         plt.xlabel(xlabel)
 
+################################################################################################################################################################################################################
 #6
 def simple_binning(categoria, alfabeto, ocorrencias, bin_size):
     binned_data = []
-    # Itera sobre os limites do alfabeto para criar os bins
-    for i in range(0, len(alfabeto), bin_size):
-        bin_start = alfabeto[i]  # Início do bin
-        bin_end = alfabeto[i + bin_size - 1] if (i + bin_size - 1) < len(alfabeto) else alfabeto[-1]
 
-        # Coleta valores que estão dentro do intervalo do bin usando um for clássico
+    for i in range(0, len(alfabeto), bin_size):
+        
+        bin_start = alfabeto[i]
         bin_values = []
+
+        if (i + bin_size - 1) < len(alfabeto):
+            bin_end = alfabeto[i + bin_size - 1]  
+        else: 
+            bin_end = alfabeto[-1]
+
+        
         for val in ocorrencias.keys():
             if bin_start <= val <= bin_end:
                 bin_values.append(val)
 
         if bin_values:
-            # Encontra o valor mais frequente dentro do bin usando ocorrências
             most_common_value = max(bin_values, key=lambda x: ocorrencias[x])
             binned_data.extend([most_common_value] * sum(ocorrencias[val] for val in bin_values))
         else:
-            # Adiciona None se não houver valores
             binned_data.extend([None] * sum(ocorrencias[val] for val in ocorrencias.keys() if val < bin_start or val > bin_end))
 
     return binned_data
 
-def contar_ocorrencias(categoria, alfabeto, lista):
+def contar_ocorrencias(categoria, lista):
     ocorrencias = {}
     ocorrencias_simbolos = {}
     for value in lista:
@@ -93,6 +101,16 @@ def contar_ocorrencias(categoria, alfabeto, lista):
     ocorrencias[categoria] = ocorrencias_simbolos
     return ocorrencias
 
+def define_alfabeto_binned(categoria, binned_data):
+    dic = {}
+    for elemento in binned_data:
+
+        alfabeto = np.unique(binned_data)
+        dic[categoria] = alfabeto
+
+    return dic
+
+################################################################################################################################################################################################################
 
 def main():
     path = "C:\\Users\\João Ferreira\\Desktop\\Documentos\\Universidade\\2º Ano\\TI\\TP1\\"
@@ -102,8 +120,6 @@ def main():
 
     varNames = data.columns.values.tolist()  # Lista com o nome das variáveis
     dataNP = data.values  # Retorna os valores do dataFrame.
-
-    #
 
     # varNames é um vetor que contem as categorias
 
@@ -125,12 +141,21 @@ def main():
 
     resultado_ocorrencias = contar_ocorrencias_por_simbolo(data_uint16, alfabeto)  # Variável que armazenará o dicionario de resultados da contagem
     
-    grafico_barras("Weight", "Não binado", resultado_ocorrencias, alfabeto)
+    grafico_barras("Weight", "Não binado - Weight", resultado_ocorrencias, alfabeto)
+    grafico_barras("Displacement", "Não binado - Displacement", resultado_ocorrencias, alfabeto)
 
-    binned_weight = simple_binning("Weight", alfabeto["Weight"], resultado_ocorrencias["Weight"], 40)
-    resultado_ocorrencias_weight_binned = contar_ocorrencias("Weight", alfabeto, binned_weight)
-    print(resultado_ocorrencias_weight_binned)
-    grafico_barras("Weight", "Binado", resultado_ocorrencias_weight_binned, alfabeto)
+    binned_varNames = ["Weight", "Displacement", "Horsepower"]
+
+    for varName in binned_varNames:
+        if varName == "Weight":
+            binned_list = simple_binning(varName, alfabeto[varName], resultado_ocorrencias[varName], 40)
+        else:
+            binned_list = simple_binning(varName, alfabeto[varName], resultado_ocorrencias[varName], 5)
+        ocorrencias_binned = contar_ocorrencias(varName, binned_list)
+        alfabeto_binned = define_alfabeto_binned(varName, binned_list)
+        grafico_barras(varName, "Binado - " + varName, ocorrencias_binned, alfabeto_binned)
+    
+    
 
     plt.show()
 
