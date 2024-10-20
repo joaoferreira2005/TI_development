@@ -56,48 +56,52 @@ def grafico_barras(categoria, xlabel, ocorrencias, alfabeto):
             if simbolo in contagem_de_ocorrencias:
                 contagens_sorted.append(contagem_de_ocorrencias[simbolo])
 
-        plt.figure(figsize=(8, 8))
-        plt.bar(list(map(str, simbolos_sorted)), contagens_sorted, color = "red")
-
+        plt.figure()
+        plt.title(f"{categoria} vs Count", size=9)
+        plt.bar(list(map(str, simbolos_sorted)), contagens_sorted, color='#D62728')
+        plt.xticks(rotation = 90, size = 6)
+        plt.yticks(size = 6)
+        
         plt.ylabel("Count")
         plt.xlabel(xlabel)
 
 ################################################################################################################################################################################################################
 #6
-def simple_binning(categoria, alfabeto, ocorrencias, bin_size):
-    binned_data = []
 
-    for i in range(0, len(alfabeto), bin_size):
-        
-        bin_start = alfabeto[i]
-        bin_values = []
+def simple_binning(data, bin_size):
+    min_val = data.min()
+    max_val = data.max()
+    bins = np.arange(min_val, max_val + bin_size, bin_size)
+    bin_labels = np.digitize(data, bins) - 1  # Bin indices start from 0
 
-        if (i + bin_size - 1) < len(alfabeto):
-            bin_end = alfabeto[i + bin_size - 1]  
-        else: 
-            bin_end = alfabeto[-1]
-
-        
-        for val in ocorrencias.keys():
-            if bin_start <= val <= bin_end:
-                bin_values.append(val)
-
-        if bin_values:
-            most_common_value = max(bin_values, key=lambda x: ocorrencias[x])
-            binned_data.extend([most_common_value] * sum(ocorrencias[val] for val in bin_values))
+    # Use the most common value in each bin without `value_counts`
+    bin_means = []
+    for i in range(len(bins) - 1):
+        bin_vals = data[(data >= bins[i]) & (data < bins[i + 1])]
+        if len(bin_vals) > 0:
+            counts = {}
+            for val in bin_vals:
+                counts[val] = counts.get(val, 0) + 1
+            most_common = max(counts, key=counts.get)
+            bin_means.append(most_common)
         else:
-            binned_data.extend([None] * sum(ocorrencias[val] for val in ocorrencias.keys() if val < bin_start or val > bin_end))
-
+            bin_means.append(0)  # Just in case there's an empty bin
+    
+    binned_data = np.array([bin_means[i] if i < len(bin_means) else max_val for i in bin_labels])
+    
     return binned_data
+
 
 def contar_ocorrencias(categoria, lista):
     ocorrencias = {}
     ocorrencias_simbolos = {}
+
     for value in lista:
         if value in ocorrencias_simbolos:
             ocorrencias_simbolos[value] += 1
         else:
             ocorrencias_simbolos[value] = 1
+
     ocorrencias[categoria] = ocorrencias_simbolos
     return ocorrencias
 
@@ -147,13 +151,13 @@ def main():
     binned_varNames = ["Weight", "Displacement", "Horsepower"]
 
     for varName in binned_varNames:
-        if varName == "Weight":
-            binned_list = simple_binning(varName, alfabeto[varName], resultado_ocorrencias[varName], 40)
-        else:
-            binned_list = simple_binning(varName, alfabeto[varName], resultado_ocorrencias[varName], 5)
+        bin_size = 40 if varName == "Weight" else 5
+        binned_list = simple_binning(data_uint16[varName], bin_size)
         ocorrencias_binned = contar_ocorrencias(varName, binned_list)
         alfabeto_binned = define_alfabeto_binned(varName, binned_list)
         grafico_barras(varName, "Binado - " + varName, ocorrencias_binned, alfabeto_binned)
+
+    plt.show()
     
     
 
