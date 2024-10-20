@@ -42,26 +42,60 @@ def contar_ocorrencias_por_simbolo(data, coluna):
 #5
 
 # Função para criar gráfico de barras
-def grafico_barras(ocorrencias, alfabeto):
-        for categoria in ocorrencias:
-            contagem_de_ocorrencias = ocorrencias[categoria]
-            simbolos = alfabeto[categoria]
-
-            simbolos_sorted = sorted(simbolos)
-            contagens_sorted = [] 
-            for simbolo in simbolos_sorted:
-                contagens_sorted.append(contagem_de_ocorrencias[simbolo])
-
-            plt.figure(figsize=(8, 8))
-            plt.bar(list(map(str, simbolos_sorted)), contagens_sorted, color = "red")
-
-            plt.ylabel("Count")
-            plt.xlabel(categoria)
-
+def grafico_barras(categoria, xlabel, ocorrencias, alfabeto):
         
+        contagem_de_ocorrencias = ocorrencias[categoria]
+        simbolos = alfabeto[categoria]
+
+        simbolos_sorted = sorted(simbolos)
+        contagens_sorted = [] 
+        for simbolo in simbolos_sorted:
+            contagens_sorted.append(contagem_de_ocorrencias[simbolo])
+
+        plt.figure(figsize=(8, 8))
+        plt.bar(list(map(str, simbolos_sorted)), contagens_sorted, color = "red")
+
+        plt.ylabel("Count")
+        plt.xlabel(xlabel)
+
+#6
+def simple_binning(categoria, alfabeto, ocorrencias, bin_size):
+    binned_data = []
+    # Itera sobre os limites do alfabeto para criar os bins
+    for i in range(0, len(alfabeto), bin_size):
+        bin_start = alfabeto[i]  # Início do bin
+        bin_end = alfabeto[i + bin_size - 1] if (i + bin_size - 1) < len(alfabeto) else alfabeto[-1]
+
+        # Coleta valores que estão dentro do intervalo do bin usando um for clássico
+        bin_values = []
+        for val in ocorrencias.keys():
+            if bin_start <= val <= bin_end:
+                bin_values.append(val)
+
+        if bin_values:
+            # Encontra o valor mais frequente dentro do bin usando ocorrências
+            most_common_value = max(bin_values, key=lambda x: ocorrencias[x])
+            binned_data.extend([most_common_value] * sum(ocorrencias[val] for val in bin_values))
+        else:
+            # Adiciona None se não houver valores
+            binned_data.extend([None] * sum(ocorrencias[val] for val in ocorrencias.keys() if val < bin_start or val > bin_end))
+
+    return binned_data
+
+def contar_ocorrencias(categoria, alfabeto, lista):
+    ocorrencias = {}
+    ocorrencias_simbolos = {}
+    for value in lista:
+        if value in ocorrencias_simbolos:
+            ocorrencias_simbolos[value] += 1
+        else:
+            ocorrencias_simbolos[value] = 1
+    ocorrencias[categoria] = ocorrencias_simbolos
+    return ocorrencias
+
 
 def main():
-    path = "C:\\Users\\João Ferreira\\Desktop\\Documentos\\Universidade\\2º Ano\\TI\\TP1\\Semana 1\\"
+    path = "C:\\Users\\João Ferreira\\Desktop\\Documentos\\Universidade\\2º Ano\\TI\\TP1\\"
     data = pd.read_excel(path+'CarDataset.xlsx')
 
     #1)
@@ -91,8 +125,13 @@ def main():
 
     resultado_ocorrencias = contar_ocorrencias_por_simbolo(data_uint16, alfabeto)  # Variável que armazenará o dicionario de resultados da contagem
     
-    grafico_barras(resultado_ocorrencias, alfabeto)
-    
+    grafico_barras("Weight", "Não binado", resultado_ocorrencias, alfabeto)
+
+    binned_weight = simple_binning("Weight", alfabeto["Weight"], resultado_ocorrencias["Weight"], 40)
+    resultado_ocorrencias_weight_binned = contar_ocorrencias("Weight", alfabeto, binned_weight)
+    print(resultado_ocorrencias_weight_binned)
+    grafico_barras("Weight", "Binado", resultado_ocorrencias_weight_binned, alfabeto)
+
     plt.show()
 
 
